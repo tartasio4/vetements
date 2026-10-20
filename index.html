@@ -94,6 +94,12 @@ body{margin:0;font:16px/1.5 "Segoe UI",system-ui,Arial,sans-serif;color:var(--in
 @keyframes fall{to{transform:translateY(108vh) rotate(540deg)}}
 button,label{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 /* selector de caracteres */
+.panel{scroll-margin-top:60px}
+.mini{position:fixed;top:0;left:0;right:0;margin:0 auto;max-width:900px;height:48px;z-index:30;display:none;align-items:center;gap:8px;padding:0 14px;background:rgba(255,255,255,.97);border:1px solid #e3e6f2;border-top:0;border-radius:0 0 16px 16px;box-shadow:0 4px 14px rgba(29,35,64,.16);cursor:pointer;font-size:.95rem;overflow:hidden;white-space:nowrap;-webkit-user-select:none;user-select:none}
+.mini.on{display:flex}
+.mini .mc{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--soft)}.mini .mc b{color:var(--indigo)}
+.mini .md{display:inline-flex;align-items:center;gap:4px;flex:none;background:#eef0fb;border-radius:999px;padding:2px 10px 2px 7px;font-weight:800;color:var(--indigo)}.mini .md i{font-style:normal;font-size:1.25rem;line-height:1}
+body.mb .kb{top:48px}
 .kb{position:sticky;top:0;z-index:5;margin:0 -4px 10px;padding:8px 4px 6px;background:#fff;border-bottom:1px solid #eceffa}
 .kbt{font-size:.8rem;font-weight:700;color:var(--soft);margin:0 0 6px}
 .kbk{display:flex;flex-wrap:wrap;gap:7px}
@@ -104,12 +110,13 @@ button,label{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .kbk button.sh.on{background:var(--indigo);border-color:var(--indigo);color:#fff}
 @media(max-width:560px){.kbk{gap:6px}.kbk button{min-width:44px;height:46px;font-size:1.25rem;padding:0 8px}}
 @media(max-width:700px){.ward{grid-template-columns:repeat(3,1fr)}.tile img{max-width:80px}.tile span{font-size:.8rem}.panel{padding:16px 14px 18px}.hero h1{font-size:1.6rem}.case{gap:5px;padding:7px}.bds{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:560px){.lbg{grid-template-columns:1fr}.day .i{font-size:1.7rem}.day .f{font-size:.82rem}.fc{gap:6px}.fc.n4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.mini{padding:0 10px;gap:6px;font-size:.9rem}.mini .mo{display:none}.mini .md{padding:2px 8px 2px 5px}.lbg{grid-template-columns:1fr}.day .i{font-size:1.7rem}.day .f{font-size:.82rem}.fc{gap:6px}.fc.n4{grid-template-columns:repeat(2,1fr)}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style></head><body>
 <div class="w">
 <div class="hero"><span class="u">Production écrite · A2.2</span><h1>La valise de Léa</h1><p>La météo et les vêtements · un jeu d’écriture</p></div>
 <div id="app">
+<div class="mini" id="mini" role="button" tabindex="0" aria-label="Rappel de ta mission. Touche pour revoir la météo."></div>
 <section class="panel cons" id="p0"><h2>Consigne</h2><p>Léa part en voyage, mais elle ne sait pas quoi mettre dans sa valise… <b>Tu es Léa !</b> Voici ta mission en trois étapes :</p>
 <ul><li>🎲 <b>Lance le dé</b> : tu découvres ta destination et la météo.</li>
 <li>🧳 <b>Fais ta valise</b> : choisis 6 vêtements adaptés au temps (jusqu’à 12 points).</li>
@@ -181,6 +188,17 @@ function paintMis(){misEl.innerHTML="";
 function roll(){if(chk||sent||busy)return;var n=D.scen.length,pool=n-(mi>=0?1:0),k=Math.floor(Math.random()*pool);if(mi>=0&&k>=mi)k++;if(k>=n)k=n-1;
  mi=k;sel=[];misEl.dataset.pop="1";paintAll();draft(true);
  try{var rm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;g("p2").scrollIntoView({behavior:rm?"auto":"smooth",block:"start"})}catch(e){}}
+/* barra de recordatorio: al hacer scroll, la misión se queda arriba en versión compacta (solo símbolos y temperaturas) */
+var mini=g("mini");
+function paintMini(){if(mi<0){mini.innerHTML="";return}var s=D.scen[mi];
+ mini.innerHTML='<span class="mc">📍 <b>'+esc(s.v)+'</b><span class="mo"> · '+esc(s.mo)+'</span></span>'+s.days.map(function(d){return'<span class="md" title="'+esc(d.j+" : "+d.f)+'"><i>'+d.i+'</i>'+fmt(d.t)+'°</span>'}).join("")}
+var raf=0;
+function place(){raf=0;var m=g("misc"),v=false;if(mi>=0&&m&&!sent&&g("app").style.display!=="none"){v=m.getBoundingClientRect().top<0}
+ mini.classList.toggle("on",v);document.body.classList.toggle("mb",v)}
+function sched(){if(!raf)raf=requestAnimationFrame(place)}
+window.addEventListener("scroll",sched,{passive:true});window.addEventListener("resize",sched);
+function backTop(){try{var rm=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;g("p1").scrollIntoView({behavior:rm?"auto":"smooth",block:"start"})}catch(e){}}
+mini.addEventListener("click",backTop);mini.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();backTop()}});
 /* ---------- 2. valise ---------- */
 var caseEl=g("case"),wardEl=g("ward"),cn=g("cn"),cm=g("cm"),chkB=g("chk"),res=g("res"),tiles={};
 D.clothes.forEach(function(c){var b=$("button","tile",'<img alt="" draggable="false" src="'+c.img+'"><span>'+esc(c.a)+'</span>');b.type="button";b.dataset.k=c.k;b.setAttribute("aria-pressed","false");b.addEventListener("click",function(){toggle(c.k)});wardEl.appendChild(b);tiles[c.k]=b});
@@ -218,7 +236,7 @@ function paintRc(){var rc=g("rc");if(mi<0||!chk){rc.innerHTML="";return}var s=D.
 /* ---------- pintar todo ---------- */
 function lock(on){[nm,em,tx].forEach(function(x){x.disabled=on});hb.disabled=on;paintCase()}
 function paintAll(){paintMis();g("p2").style.display=mi>=0?"":"none";g("p2s").textContent=mi>=0?"Touche "+D.cap+" vêtements adaptés à la météo pour les mettre dans la valise. Touche-les de nouveau pour les retirer.":"";
- paintCase();g("p3").style.display=chk?"":"none";g("p4").style.display=chk?"":"none";paintRc();paintHint();upd()}
+ paintCase();g("p3").style.display=chk?"":"none";g("p4").style.display=chk?"":"none";paintRc();paintHint();upd();paintMini();sched()}
 /* ---------- envío ---------- */
 function msg(cls,html,acts){box.className="lbm "+cls;box.innerHTML=html;if(acts&&acts.length){var d=$("div","lba");acts.forEach(function(x){var b=$("button",x.c||"btn",esc(x.t));b.type="button";b.addEventListener("click",x.f);d.appendChild(b)});box.appendChild(d)}}
 function copyTxt(d){var s=D.scen[mi];return[document.title,"","Nom : "+d.name,"E-mail : "+d.email,"Date : "+new Date().toLocaleString("fr-FR"),"","Mission : Léa part "+s.p+" en "+s.mo,"Valise : "+sel.map(function(k){return C[k].a}).join(", "),"","Message :",d.text].join("\n")}
